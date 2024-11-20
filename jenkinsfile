@@ -1,0 +1,19 @@
+pipeline {
+    agent any
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('docker-hub')
+        AWS_EC2_USER = 'ec2-user' // Adjust as per your EC2 instance
+        AWS_EC2_IP = '51.20.254.48'
+        SSH_KEY = credentials('ec2-ssh-key')
+    }
+
+ parameters {
+       choice(name: 'ENVIRONMENT', choices: ['UAT', 'Production'], description: 'Choose the environment to deploy to')
+    }
+    
+stages {
+        stage('Clone Repository') {
+            steps {
+                git 'https://github.com/sharadsingh0303/dotnet-hello-world.git'
+            }
+        }
