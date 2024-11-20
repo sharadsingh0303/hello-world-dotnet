@@ -35,11 +35,10 @@ pipeline {
             steps {
                 sshagent(credentials: ['1']) {
                     sh """
-                        ssh -o StrictHostKeyChecking=no ${AWS_EC2_USER}@${AWS_EC2_IP} \
-                        'docker pull ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER} && \
+                        docker pull ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER} && \
                         docker stop dotnet-api || true && \
                         docker rm dotnet-api || true && \
-                        docker run -d -p 80:80 --name ${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}'
+                        docker run -d -p 80:80 --name ${DOCKER_IMAGE_NAME} ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:latest 
                     """
                 }
             }
