@@ -17,3 +17,5 @@ stages {
                 git 'https://github.com/sharadsingh0303/dotnet-hello-world.git'
             }
         }
+    }
+}
