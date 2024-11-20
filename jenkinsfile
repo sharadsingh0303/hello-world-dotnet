@@ -4,7 +4,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('docker-hub')
         AWS_EC2_USER = 'ec2-user' // Adjust as per your EC2 instance
         AWS_EC2_IP = '51.20.254.48'
-        SSH_KEY = credentials('ec2-ssh-key')
+        SSH_KEY = credentials('new-20-11.pem')
     }
 
  parameters {
