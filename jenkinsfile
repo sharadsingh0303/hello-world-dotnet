@@ -1,9 +1,9 @@
 pipeline {
     agent any   
     environment {
-        DOCKER_IMAGE = "parthitk/d2k:${BUILD_NUMBER}"
-        DOCKER_HUB_CREDENTIALS = credentials('docker-hub')
-        UAT_SSH_KEY = credentials('UAT_SSH_KEY') 
+        DOCKER_IMAGE = "test3:${BUILD_NUMBER}"
+        DOCKER_HUB_CREDENTIALS = credentials('Docker-hub')
+        UAT_SSH_KEY = credentials('1') 
     }
     parameters {
        choice(name: 'ENVIRONMENT', choices: ['UAT', 'Production'], description: 'Choose the environment to deploy to')
@@ -36,12 +36,12 @@ pipeline {
                     echo "Deploying to UAT environment on EC2 instance..."
                     def ec2Ip = (params.ENVIRONMENT == 'UAT') ? env.UAT_EC2_IP : env.PROD_EC2_IP 
                     // Use `sshagent` to access the stored SSH key securely
-                    sshagent(['UAT_SSH_KEY']) {
+                    sshagent(['1']) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ubuntu@${ec2Ip} '
-                                docker stop cont1 
-                                docker rm cont1
-                                docker run -d --name cont1 -p 1010:5000 ${DOCKER_IMAGE}
+                            ssh -o StrictHostKeyChecking=no ec2-user@${ec2Ip} '
+                                docker stop fervent_yalow 
+                                docker rm fervent_yalow
+                                docker run -p 8081:80 -d test2 ${DOCKER_IMAGE}
                             '
                         """
                     }
@@ -52,7 +52,7 @@ pipeline {
             steps {
                 script {
                     def ec2IP = (ENVIRONMENT == 'UAT') ? "${env.UAT_EC2_IP}" : "${env.PROD_EC2_IP}"
-                    def healthCheckUrl = "http://${ec2IP}:1010/api/hello"
+                    def healthCheckUrl = "http://${ec2IP}:8081/api/hello"
                     
                     sh """
                         if curl -f ${healthCheckUrl}; then
