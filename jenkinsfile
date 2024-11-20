@@ -1,69 +1,50 @@
 pipeline {
-    agent any   
+    agent any
     environment {
-        DOCKER_IMAGE = "test3:${BUILD_NUMBER}"
-        DOCKER_HUB_CREDENTIALS = credentials('Docker-hub')
-        UAT_SSH_KEY = credentials('1') 
-    }
-    parameters {
-       choice(name: 'ENVIRONMENT', choices: ['UAT', 'Production'], description: 'Choose the environment to deploy to')
+        DOCKERHUB_CREDENTIALS = credentials('Docker-hub') // Docker Hub credentials ID
+        AWS_EC2_USER = 'ec2-user' // Adjust as per your EC2 instance
+        AWS_EC2_IP = '51.20.254.48'
+        SSH_KEY = credentials('1') // SSH key for EC2 access
     }
     stages {
-        stage('Clone Code') {
+        stage('Clone Repository') {
             steps {
-                echo "scm checkout"
+                git 'https://github.com/sharadsingh0303/hello-world-dotnet.git'
             }
         }
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${DOCKER_IMAGE}")
+                    docker.build("your-dockerhub-username/dotnet-api:${env.BUILD_NUMBER}")
                 }
             }
         }
-        stage('Push Docker Image to Docker Hub') {
+        stage('Push to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', "docker-hub") {
-                        docker.image("${DOCKER_IMAGE}").push()
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
+                        docker.image("your-dockerhub-username/dotnet-api:${env.BUILD_NUMBER}").push()
                     }
                 }
             }
         }
-        stage('Deploy to UAT') {
+        stage('Deploy to AWS EC2') {
             steps {
-                script {
-                    echo "Deploying to UAT environment on EC2 instance..."
-                    def ec2Ip = (params.ENVIRONMENT == 'UAT') ? env.UAT_EC2_IP : env.PROD_EC2_IP 
-                    // Use `sshagent` to access the stored SSH key securely
-                    sshagent(['1']) {
-                        sh """
-                            ssh -o StrictHostKeyChecking=no ec2-user@${ec2Ip} '
-                                docker stop fervent_yalow 
-                                docker rm fervent_yalow
-                                docker run -p 8081:80 -d test2 ${DOCKER_IMAGE}
-                            '
-                        """
-                    }
-                }
-            }
-        }
-        stage('Verify Health Check') {
-            steps {
-                script {
-                    def ec2IP = (ENVIRONMENT == 'UAT') ? "${env.UAT_EC2_IP}" : "${env.PROD_EC2_IP}"
-                    def healthCheckUrl = "http://${ec2IP}:8081/api/hello"
-                    
+                sshagent(credentials: ['1']) {
                     sh """
-                        if curl -f ${healthCheckUrl}; then
-                            echo "Health check passed. Application is running successfully."
-                        else
-                            echo "Health check failed. Application may not be running correctly."
-                            exit 1
-                        fi
+                        ssh -o StrictHostKeyChecking=no ${AWS_EC2_USER}@${AWS_EC2_IP} \
+                        'docker pull your-dockerhub-username/dotnet-api:${env.BUILD_NUMBER} && \
+                        docker stop dotnet-api || true && \
+                        docker rm dotnet-api || true && \
+                        docker run -d -p 5000:5000 --name dotnet-api your-dockerhub-username/dotnet-api:${env.BUILD_NUMBER}'
                     """
                 }
             }
+        }
+    }
+    post {
+        always {
+            cleanWs()
         }
     }
 }
